@@ -1,32 +1,16 @@
 'use client';
 
 import { create } from 'zustand';
-import { useRef, forwardRef, useEffect } from 'react';
+import { useRef, forwardRef, useEffect, MouseEvent, useCallback } from 'react';
 import * as ToggleGroup from '@radix-ui/react-toggle-group';
 import { Canvas, useThree, useFrame } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import { Line } from '@react-three/drei';
+import { useDropzone } from 'react-dropzone';
 import * as THREE from 'three';
+import { v4 as uuid } from 'uuid';
 
 
-type CameraPose = {
-    x: number;
-    y: number;
-    z: number;
-};
-
-
-type BuildSpaceDimensions = {
-    width: number;
-    depth: number;
-    height: number;
-};
-
-interface NinjaState {
-    cameraPose: CameraPose;
-    setCameraPose: (newPose: CameraPose) => void;
-    buildSpaceDimensions: BuildSpaceDimensions;
-}
 
 const INITIAL_BUILD_SPACE_DIMENSIONS: BuildSpaceDimensions = {
     width: 200,
@@ -40,10 +24,58 @@ const ISOMETRIC_CAMERA_POSE: CameraPose = {
     z: 100
 };
 
+const enum CameraPreset {
+    Isometric = 'ISOMETRIC',
+    Left = 'LEFT',
+    Right = 'RIGHT',
+    Front = 'FRONT',
+    Top = 'TOP'
+};
+
+
+
+
+type CameraPose = {
+    x: number;
+    y: number;
+    z: number;
+};
+
+type BuildSpaceDimensions = {
+    width: number;
+    depth: number;
+    height: number;
+};
+
+
+type ModelFile = {
+    id: string;
+    name: string;
+    url: string;
+};
+
+
+interface NinjaState {
+    cameraPose: CameraPose;
+    setCameraPose: (newPose: CameraPose) => void;
+    buildSpaceDimensions: BuildSpaceDimensions;
+    canSlice: boolean;
+    modelFiles: ModelFile[];
+    addModelFile: (modelFile: ModelFile) => void;
+    removeModelFile: (id: string) => void;
+
+}
+
+
 const useNinjaStore = create<NinjaState>((set) => ({
     cameraPose: ISOMETRIC_CAMERA_POSE,
     setCameraPose: (newPose: CameraPose) => set((state) => ({ cameraPose: newPose })),
-    buildSpaceDimensions: INITIAL_BUILD_SPACE_DIMENSIONS
+    buildSpaceDimensions: INITIAL_BUILD_SPACE_DIMENSIONS,
+    canSlice: false,
+    modelFiles: [],
+    addModelFile: (modelFile) => set((state) => ({ modelFiles: [...state.modelFiles, modelFile], canSlice: true })),
+    removeModelFile: (id) => set((state) => ({ modelFiles: state.modelFiles.filter(e => e.id !== id), canSlice: false })),
+
 }))
 
 
@@ -105,7 +137,7 @@ const Scene = forwardRef((props: any, ref) => {
 
 
 
-export const BuildSpace = () => {
+const BuildSpace = () => {
 
     const buildSpaceDimensions = useNinjaStore(state => state.buildSpaceDimensions);
 
@@ -114,11 +146,11 @@ export const BuildSpace = () => {
     const yLines: any = [];
 
     for (let x = 0; x <= Math.floor(buildSpaceDimensions.width / DIVISIONS); x++) {
-        xLines.push(<Line points={[[x * DIVISIONS, 0, 0], [x * DIVISIONS, buildSpaceDimensions.depth, 0]]} color='aqua' lineWidth={1} />)
+        xLines.push(<Line key={`x${x}`} points={[[x * DIVISIONS, 0, 0], [x * DIVISIONS, buildSpaceDimensions.depth, 0]]} color='aqua' lineWidth={1} />)
     }
 
     for (let y = 0; y <= Math.floor(buildSpaceDimensions.depth / DIVISIONS); y++) {
-        yLines.push(<Line points={[[0, y * DIVISIONS, 0], [buildSpaceDimensions.width, y * DIVISIONS, 0]]} color='aqua' lineWidth={1} />)
+        yLines.push(<Line key={`y${y}`} points={[[0, y * DIVISIONS, 0], [buildSpaceDimensions.width, y * DIVISIONS, 0]]} color='aqua' lineWidth={1} />)
     }
 
     return (
@@ -135,22 +167,19 @@ export const BuildSpace = () => {
 
 
 
-const enum CameraPreset {
-    Isometric = 'ISOMETRIC',
-    Left = 'LEFT',
-    Right = 'RIGHT',
-    Front = 'FRONT',
-    Top = 'TOP'
-};
-
 
 const Home = () => {
 
-
     const setCameraPose = useNinjaStore(state => state.setCameraPose);
     const buildSpaceDimensions = useNinjaStore(state => state.buildSpaceDimensions);
+    const canSlice = useNinjaStore(state => state.canSlice);
+    const modelFiles = useNinjaStore(state => state.modelFiles);
+    const addModelFile = useNinjaStore(state => state.addModelFile);
+    const removeModelFile = useNinjaStore(state => state.removeModelFile);
 
-    const cameraPresetChanged = (preset: string) => {
+
+
+    const onCameraPreset = (preset: string) => {
 
         switch (preset) {
             case CameraPreset.Isometric:
@@ -192,6 +221,32 @@ const Home = () => {
     };
 
 
+    const onSlice = (e: MouseEvent<HTMLElement>) => {
+        alert('slicing');
+    }
+
+    const onDrop = useCallback((acceptedFiles: any) => {
+
+        /*
+        TODO 
+        - check size and type is okay
+        */
+
+        for (const file of acceptedFiles) {
+            const url = URL.createObjectURL(file);
+
+            addModelFile({
+                id: uuid(),
+                name: file.name,
+                url
+            });
+        }
+
+
+
+    }, [])
+    const { getRootProps, getInputProps } = useDropzone({ onDrop })
+
 
 
     return (
@@ -201,9 +256,27 @@ const Home = () => {
 
 
                 <div className=''>
+                    <button className='bg-green-300 disabled:bg-red-300' disabled={!canSlice} onClick={onSlice}>Slice</button>
+                </div>
+
+                <div className=''>
+                    <div {...getRootProps()} className='bg-zinc-500 border border-green-300'>
+                        <input {...getInputProps()} />
+                        <p>Drop or click here to load models</p>
+                    </div>
+
+                    {
+                        modelFiles.map(modelFile => <div key={modelFile.id} className='p-1'>
+                            <p className='text-zinc-200'>{modelFile.name}</p>
+                            <button className='border text-zinc-200' onClick={() => removeModelFile(modelFile.id)}>remove</button>
+                        </div>)
+                    }
+                </div>
+
+                <div className=''>
 
 
-                    <ToggleGroup.Root type='single' onValueChange={cameraPresetChanged}>
+                    <ToggleGroup.Root type='single' onValueChange={onCameraPreset}>
                         <ToggleGroup.Item className='border border-red-400 text-white' value={CameraPreset.Isometric}>Isometric</ToggleGroup.Item>
                         <ToggleGroup.Item className='border border-red-400 text-white' value={CameraPreset.Left}>Left</ToggleGroup.Item>
                         <ToggleGroup.Item className='border border-red-400 text-white' value={CameraPreset.Right}>Right</ToggleGroup.Item>
