@@ -19,6 +19,9 @@
 - Clicking on a model will focus the model behind it
 - Toggle axes and build space view
 - Move model around
+- Validate settings
+- Move `buildSpaceDimens` to settings store
+- Import printers and pre-fill settings
 
 
 
