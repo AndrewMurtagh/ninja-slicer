@@ -18,7 +18,8 @@
     "react": "^18",
     "react-dom": "^18",
     "react-dropzone": "^14.2.3",
-    "three": "^0.158.0"
+    "three": "^0.158.0",
+    "zustand": "^4.4.6"
   },
   "devDependencies": {
     "typescript": "^5",
