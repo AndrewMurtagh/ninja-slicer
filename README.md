@@ -19,3 +19,10 @@
 ## Notice
 
 Not tested on machines.
+
+
+## Slicer
+
+We use PrusaSlicer [2.7.0] (licensed under AGPLv3).
+
+<!-- PrusaSlicer-2.7.0+linux-x64-GTK3-202311231454.tar.bz2 and PrusaSlicer-2.7.0+MacOS-universal-202311231501.dmg -->
