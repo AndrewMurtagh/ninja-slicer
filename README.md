@@ -11,6 +11,10 @@
 - Keyboard shortcuts
 - Check model is not out of bounds
 - Check file type and size is okay when uploaded
+- Add machine model to scene
+- Run slicer as library instead of through CMD line
+- Process slicing jobs in the background instead 
+- Update `canSlice` correctly
 
 ## Notice
 

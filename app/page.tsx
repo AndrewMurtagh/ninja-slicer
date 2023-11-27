@@ -1,5 +1,6 @@
 'use client';
 
+import axios from 'axios';
 import { create } from 'zustand';
 import { useRef, forwardRef, useEffect, MouseEvent, useCallback, useState } from 'react';
 import * as ToggleGroup from '@radix-ui/react-toggle-group';
@@ -58,6 +59,7 @@ type ModelFile = {
     id: string;
     name: string;
     url: string;
+    fileData: File;
     scale: number;
     rotation: number;
 };
@@ -75,19 +77,7 @@ interface NinjaState {
     setModelRotation: (id: string, degrees: number) => void;
 }
 
-
-// const useNinjaStore = create<NinjaState>((set) => ({
-//     cameraPose: ISOMETRIC_CAMERA_POSE,
-//     setCameraPose: (newPose: CameraPose) => set((state) => ({ cameraPose: newPose })),
-//     buildSpaceDimensions: INITIAL_BUILD_SPACE_DIMENSIONS,
-//     canSlice: false,
-//     modelFiles: [],
-//     addModelFile: (modelFile) => set((state) => ({ modelFiles: [...state.modelFiles, modelFile], canSlice: true })),
-//     removeModelFile: (id) => set((state) => ({ modelFiles: state.modelFiles.filter(e => e.id !== id), canSlice: false })),
-
-// }))
-
-export const useNinjaStore = create<NinjaState>()(
+const useNinjaStore = create<NinjaState>()(
     immer((set) => ({
         cameraPose: ISOMETRIC_CAMERA_POSE,
         buildSpaceDimensions: INITIAL_BUILD_SPACE_DIMENSIONS,
@@ -97,10 +87,12 @@ export const useNinjaStore = create<NinjaState>()(
             state.cameraPose = pose;
         }),
         addModelFile: (modelFile: ModelFile) => set((state) => {
-            state.modelFiles.push(modelFile)
+            state.modelFiles.push(modelFile);
+            state.canSlice = true;
         }),
         removeModelFile: (id: string) => set((state) => {
-            state.modelFiles.filter(e => e.id !== id);
+            state.modelFiles= state.modelFiles.filter(e => e.id !== id);
+            state.canSlice = false;
         }),
         setModelScale: (id: string, scale: number) => set((state) => {
             const model = state.modelFiles.find(e => e.id === id);
@@ -131,7 +123,8 @@ const Axes = ({ length }: { length: number }) => {
 }
 
 
-const Scene = forwardRef((props: any, ref) => {
+// const Scene = forwardRef((props: any, ref) => {
+const Scene = (props: any) => {
 
     const buildSpaceDimensions = useNinjaStore(state => state.buildSpaceDimensions);
 
@@ -174,7 +167,7 @@ const Scene = forwardRef((props: any, ref) => {
             />
         </scene>
     );
-});
+};
 
 
 
@@ -292,8 +285,40 @@ const Home = () => {
     };
 
 
-    const onSlice = (e: MouseEvent<HTMLElement>) => {
-        alert('slicing');
+    const onSlice = async (e: MouseEvent<HTMLElement>) => {
+
+        if (modelFiles.length === 0) {
+            alert('You have not uploaded a model to slice.');
+        }
+
+        // TODO 
+        // - check the model is in the build space
+
+        const formData = new FormData();
+        for (const modelFile of modelFiles) {
+            formData.append(modelFile.id, modelFile.fileData);
+        }
+
+
+        try {
+            const res = await axios({
+                method: 'POST',
+                url: '/api/slice',
+                data: formData,
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+                params: {
+                    settings: 'TODO'
+                }
+            });
+            console.log(res.status)
+            console.log(res.data)
+        } catch (error) {
+            console.log(error)
+
+        }
+
     }
 
     const onDrop = useCallback((acceptedFiles: any) => {
@@ -305,6 +330,7 @@ const Home = () => {
                 id: uuid(),
                 name: file.name,
                 url,
+                fileData: file,
                 scale: 1,
                 rotation: 0
             });
