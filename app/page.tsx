@@ -1,14 +1,20 @@
 'use client';
 
 import { create } from 'zustand';
-import { useRef, forwardRef, useEffect, MouseEvent, useCallback } from 'react';
+import { useRef, forwardRef, useEffect, MouseEvent, useCallback, useState } from 'react';
 import * as ToggleGroup from '@radix-ui/react-toggle-group';
-import { Canvas, useThree, useFrame } from '@react-three/fiber';
-import { OrbitControls } from '@react-three/drei';
-import { Line } from '@react-three/drei';
+import { Canvas, useThree, useFrame, useLoader } from '@react-three/fiber';
+import { OrbitControls, Line } from '@react-three/drei';
 import { useDropzone } from 'react-dropzone';
 import * as THREE from 'three';
+import { immer } from 'zustand/middleware/immer'
+
 import { v4 as uuid } from 'uuid';
+//@ts-ignore
+import { STLLoader } from 'three/examples/jsm/loaders/STLLoader';
+
+// import {} from 'react-three-fiber';
+
 
 
 
@@ -52,31 +58,66 @@ type ModelFile = {
     id: string;
     name: string;
     url: string;
+    scale: number;
+    rotation: number;
 };
 
 
 interface NinjaState {
     cameraPose: CameraPose;
-    setCameraPose: (newPose: CameraPose) => void;
+    setCameraPose: (pose: CameraPose) => void;
     buildSpaceDimensions: BuildSpaceDimensions;
     canSlice: boolean;
     modelFiles: ModelFile[];
     addModelFile: (modelFile: ModelFile) => void;
     removeModelFile: (id: string) => void;
-
+    setModelScale: (id: string, scale: number) => void;
+    setModelRotation: (id: string, degrees: number) => void;
 }
 
 
-const useNinjaStore = create<NinjaState>((set) => ({
-    cameraPose: ISOMETRIC_CAMERA_POSE,
-    setCameraPose: (newPose: CameraPose) => set((state) => ({ cameraPose: newPose })),
-    buildSpaceDimensions: INITIAL_BUILD_SPACE_DIMENSIONS,
-    canSlice: false,
-    modelFiles: [],
-    addModelFile: (modelFile) => set((state) => ({ modelFiles: [...state.modelFiles, modelFile], canSlice: true })),
-    removeModelFile: (id) => set((state) => ({ modelFiles: state.modelFiles.filter(e => e.id !== id), canSlice: false })),
+// const useNinjaStore = create<NinjaState>((set) => ({
+//     cameraPose: ISOMETRIC_CAMERA_POSE,
+//     setCameraPose: (newPose: CameraPose) => set((state) => ({ cameraPose: newPose })),
+//     buildSpaceDimensions: INITIAL_BUILD_SPACE_DIMENSIONS,
+//     canSlice: false,
+//     modelFiles: [],
+//     addModelFile: (modelFile) => set((state) => ({ modelFiles: [...state.modelFiles, modelFile], canSlice: true })),
+//     removeModelFile: (id) => set((state) => ({ modelFiles: state.modelFiles.filter(e => e.id !== id), canSlice: false })),
 
-}))
+// }))
+
+export const useNinjaStore = create<NinjaState>()(
+    immer((set) => ({
+        cameraPose: ISOMETRIC_CAMERA_POSE,
+        buildSpaceDimensions: INITIAL_BUILD_SPACE_DIMENSIONS,
+        canSlice: false,
+        modelFiles: [],
+        setCameraPose: (pose: CameraPose) => set((state) => {
+            state.cameraPose = pose;
+        }),
+        addModelFile: (modelFile: ModelFile) => set((state) => {
+            state.modelFiles.push(modelFile)
+        }),
+        removeModelFile: (id: string) => set((state) => {
+            state.modelFiles.filter(e => e.id !== id);
+        }),
+        setModelScale: (id: string, scale: number) => set((state) => {
+            const model = state.modelFiles.find(e => e.id === id);
+            if (model) {
+                model.scale = scale;
+            }
+        }),
+        setModelRotation: (id: string, degrees: number) => set((state) => {
+            const model = state.modelFiles.find(e => e.id === id);
+            if (model) {
+                model.rotation = degrees;
+            }
+        }),
+
+
+    })),
+)
 
 
 const Axes = ({ length }: { length: number }) => {
@@ -168,6 +209,35 @@ const BuildSpace = () => {
 
 
 
+const STLModel = ({ modelFile }: { modelFile: ModelFile; }) => {
+
+    const [highlighted, setHighlighted] = useState(false);
+    const geom = useLoader(STLLoader, modelFile.url);
+    const buildSpaceDimensions = useNinjaStore(state => state.buildSpaceDimensions);
+
+    let colour;
+    if (highlighted) {
+        colour = 0xffd75e;
+    } else if (!highlighted) {
+        colour = 0xffc719;
+    }
+
+    return (
+        <>
+            <mesh
+                position={[buildSpaceDimensions.width / 2, buildSpaceDimensions.depth / 2, 0]}
+                onPointerOver={e => setHighlighted(true)}
+                onPointerOut={e => setHighlighted(false)}
+                scale={[modelFile.scale, modelFile.scale, modelFile.scale]}
+                rotation={[0, 0, THREE.MathUtils.degToRad(modelFile.rotation)]}>
+                <primitive object={geom} attach="geometry" />
+                <meshPhongMaterial attach="material" color={colour} side={THREE.DoubleSide} />
+            </mesh>
+        </>
+    )
+}
+
+
 const Home = () => {
 
     const setCameraPose = useNinjaStore(state => state.setCameraPose);
@@ -176,7 +246,8 @@ const Home = () => {
     const modelFiles = useNinjaStore(state => state.modelFiles);
     const addModelFile = useNinjaStore(state => state.addModelFile);
     const removeModelFile = useNinjaStore(state => state.removeModelFile);
-
+    const setModelScale = useNinjaStore(state => state.setModelScale);
+    const setModelRotation = useNinjaStore(state => state.setModelRotation);
 
 
     const onCameraPreset = (preset: string) => {
@@ -227,18 +298,15 @@ const Home = () => {
 
     const onDrop = useCallback((acceptedFiles: any) => {
 
-        /*
-        TODO 
-        - check size and type is okay
-        */
-
         for (const file of acceptedFiles) {
             const url = URL.createObjectURL(file);
 
             addModelFile({
                 id: uuid(),
                 name: file.name,
-                url
+                url,
+                scale: 1,
+                rotation: 0
             });
         }
 
@@ -269,6 +337,8 @@ const Home = () => {
                         modelFiles.map(modelFile => <div key={modelFile.id} className='p-1'>
                             <p className='text-zinc-200'>{modelFile.name}</p>
                             <button className='border text-zinc-200' onClick={() => removeModelFile(modelFile.id)}>remove</button>
+                            <button className='border text-zinc-200' onClick={() => setModelScale(modelFile.id, 2)}>scale</button>
+                            <button className='border text-zinc-200' onClick={() => setModelRotation(modelFile.id, 180)}>rotate</button>
                         </div>)
                     }
                 </div>
@@ -286,6 +356,8 @@ const Home = () => {
 
                 </div>
 
+
+
             </div>
 
 
@@ -298,6 +370,8 @@ const Home = () => {
                     <BuildSpace />
 
                     <Axes length={40} />
+
+                    {modelFiles.map(modelFile => <STLModel key={modelFile.id} modelFile={modelFile} />)}
 
                 </Canvas>
             </div>
