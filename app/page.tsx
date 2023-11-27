@@ -1,15 +1,15 @@
 'use client';
 
 import axios from 'axios';
-import { create } from 'zustand';
 import { useRef, useEffect, MouseEvent, useCallback, useState } from 'react';
 import * as ToggleGroup from '@radix-ui/react-toggle-group';
+import * as Form from '@radix-ui/react-form';
 import { Canvas, useThree, useFrame, useLoader } from '@react-three/fiber';
+import * as Accordion from '@radix-ui/react-accordion';
 import { OrbitControls, Line } from '@react-three/drei';
 import { useDropzone } from 'react-dropzone';
 import * as THREE from 'three';
-import { BiSolidTrash } from 'react-icons/bi';
-import { immer } from 'zustand/middleware/immer'
+import { BiRefresh, BiSolidTrash } from 'react-icons/bi';
 import { v4 as uuid } from 'uuid';
 import { BuildSpaceDimensions, CameraPose, ModelFile } from './lib/types';
 import {
@@ -19,57 +19,12 @@ import {
 } from './lib/consts';
 //@ts-ignore
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader';
+import { useNinjaStore } from './lib/store';
 
 
 
 
 
-
-interface NinjaState {
-    cameraPose: CameraPose;
-    setCameraPose: (pose: CameraPose) => void;
-    buildSpaceDimensions: BuildSpaceDimensions;
-    canSlice: boolean;
-    modelFiles: ModelFile[];
-    addModelFile: (modelFile: ModelFile) => void;
-    removeModelFile: (id: string) => void;
-    setModelScale: (id: string, scale: number) => void;
-    setModelRotation: (id: string, degrees: number) => void;
-}
-
-const useNinjaStore = create<NinjaState>()(
-    immer((set) => ({
-        cameraPose: ISOMETRIC_CAMERA_POSE,
-        buildSpaceDimensions: INITIAL_BUILD_SPACE_DIMENSIONS,
-        canSlice: false,
-        modelFiles: [],
-        setCameraPose: (pose: CameraPose) => set((state) => {
-            state.cameraPose = pose;
-        }),
-        addModelFile: (modelFile: ModelFile) => set((state) => {
-            state.modelFiles.push(modelFile);
-            state.canSlice = true;
-        }),
-        removeModelFile: (id: string) => set((state) => {
-            state.modelFiles = state.modelFiles.filter(e => e.id !== id);
-            state.canSlice = false;
-        }),
-        setModelScale: (id: string, scale: number) => set((state) => {
-            const model = state.modelFiles.find(e => e.id === id);
-            if (model) {
-                model.scale = scale;
-            }
-        }),
-        setModelRotation: (id: string, degrees: number) => set((state) => {
-            const model = state.modelFiles.find(e => e.id === id);
-            if (model) {
-                model.rotation = degrees;
-            }
-        }),
-
-
-    })),
-)
 
 
 
@@ -164,12 +119,21 @@ const STLModel = ({ modelFile }: { modelFile: ModelFile; }) => {
     const [highlighted, setHighlighted] = useState(false);
     const geom = useLoader(STLLoader, modelFile.url);
     const buildSpaceDimensions = useNinjaStore(state => state.buildSpaceDimensions);
+    const highlightedModelId = useNinjaStore(state => state.highlightedModelId);
+    const setHighlightedModelId = useNinjaStore(state => state.setHighlightedModelId);
 
+    // if(props.oob) {
+    //     colour = 0xCC3C3C
+    //   } else 
     let colour;
-    if (highlighted) {
-        colour = 0xffd75e;
-    } else if (!highlighted) {
-        colour = 0xffc719;
+    if (highlightedModelId === modelFile.id && highlighted) {
+        colour = 0x76db76
+    } else if (highlightedModelId === modelFile.id && !highlighted) {
+        colour = 0x3ccc3c
+    } else if (highlightedModelId !== modelFile.id && highlighted) {
+        colour = 0xffd75e
+    } else if (highlightedModelId !== modelFile.id && !highlighted) {
+        colour = 0xffc719
     }
 
     return (
@@ -178,6 +142,8 @@ const STLModel = ({ modelFile }: { modelFile: ModelFile; }) => {
                 position={[buildSpaceDimensions.width / 2, buildSpaceDimensions.depth / 2, 0]}
                 onPointerOver={e => setHighlighted(true)}
                 onPointerOut={e => setHighlighted(false)}
+                onClick={() => setHighlightedModelId(modelFile.id)}
+                onPointerMissed={() => setHighlightedModelId(null)}
                 scale={[modelFile.scale, modelFile.scale, modelFile.scale]}
                 rotation={[0, 0, THREE.MathUtils.degToRad(modelFile.rotation)]}>
                 <primitive object={geom} attach='geometry' />
@@ -240,6 +206,7 @@ const Home = () => {
     const modelFiles = useNinjaStore(state => state.modelFiles);
     const addModelFile = useNinjaStore(state => state.addModelFile);
     const removeModelFile = useNinjaStore(state => state.removeModelFile);
+    const highlightedModelId = useNinjaStore(state => state.highlightedModelId);
     const setModelScale = useNinjaStore(state => state.setModelScale);
     const setModelRotation = useNinjaStore(state => state.setModelRotation);
 
@@ -310,14 +277,14 @@ const Home = () => {
 
 
     return (
-        <div className='w-screen h-screen bg-zinc-950 grid grid-cols-5'>
+        <div className='w-screen h-screen bg-zinc-950 grid grid-cols-5 box-border'>
 
-            <div className='p-3 flex flex-col border border-green-600'>
+            <div className='m-3 p-3 flex flex-col border border-green-600 justify-between'>
 
 
                 <SliceButton />
 
-                <div className='mt-9'>
+                <div>
 
                     <p className='text-xs text-zinc-400 mb-1 text-center'>Models</p>
                     <div {...getRootProps()} className='bg-zinc-600 rounded border-zinc-500 py-2 px-3 mb-3 cursor-pointer rounded text-xs text-zinc-400'>
@@ -325,17 +292,56 @@ const Home = () => {
                         <p>Drop or click here to load models</p>
                     </div>
 
-                    {
-                        modelFiles.map(modelFile => <div key={modelFile.id} className='p-1 flex rounded justify-between'>
-                            <p className='text-zinc-300'>{modelFile.name}</p>
-                            <button className='hover:bg-zinc-700 text-zinc-400 p-1 rounded' onClick={() => removeModelFile(modelFile.id)}><BiSolidTrash /></button>
-                            {/* <button className='border text-zinc-200' onClick={() => setModelScale(modelFile.id, 2)}>scale</button>
-                            <button className='border text-zinc-200' onClick={() => setModelRotation(modelFile.id, 180)}>rotate</button> */}
-                        </div>)
-                    }
+                    <Accordion.Root type='multiple'>
+                        {
+                            modelFiles.map(modelFile =>
+                                <Accordion.Item key={modelFile.id} value={modelFile.id} className='w-full'>
+                                    <Accordion.Header className='w-full'>
+                                        <Accordion.Trigger className={`${highlightedModelId === modelFile.id ? 'bg-green-700' : 'bg-zinc-700 data-[state=open]:bg-green-700'} px-3 hover:bg-zinc-400  w-full p-1 flex rounded justify-between`}>
+                                            <p className='text-zinc-300'>{modelFile.name}</p>
+                                        </Accordion.Trigger>
+                                    </Accordion.Header>
+                                    <Accordion.Content className='bg-zinc-700 p-3 rounded'>
+                                        <button className='hover:bg-zinc-700 text-zinc-200 p-1 rounded' onClick={() => { setModelScale(modelFile.id, 1); setModelRotation(modelFile.id, 1); }}><BiRefresh /></button>
+                                        <button className='hover:bg-zinc-700 text-zinc-200 p-1 rounded' onClick={() => removeModelFile(modelFile.id)}><BiSolidTrash /></button>
+
+
+                                        <Form.Root onSubmit={e => e.preventDefault()}>
+                                            <Form.Field name='scale' className='flex items-center justify-between'>
+                                                <Form.Label className='text-xs text-zinc-400 mb-1 text-center'>Scale</Form.Label>
+                                                <Form.Control asChild>
+                                                    <input
+                                                        className='bg-zinc-600 rounded border-zinc-500 py-2 px-3 mb-3 cursor-pointer rounded text-xs text-zinc-400'
+                                                        step={0.1}
+                                                        type='number'
+                                                        value={modelFile.scale}
+                                                        onChange={(e) => setModelScale(modelFile.id, Number(e.target.value))} />
+                                                </Form.Control>
+                                            </Form.Field>
+
+                                            <Form.Field name='rotation' className='flex items-center justify-between'>
+                                                <Form.Label className='text-xs text-zinc-400 mb-1 text-center'>Rotation</Form.Label>
+                                                <Form.Control asChild>
+                                                    <input
+                                                        className='bg-zinc-600 rounded border-zinc-500 py-2 px-3 mb-3 cursor-pointer rounded text-xs text-zinc-400'
+                                                        step={10}
+                                                        type='number'
+                                                        value={modelFile.rotation}
+                                                        onChange={(e) => setModelRotation(modelFile.id, Number(e.target.value))} />
+                                                </Form.Control>
+                                            </Form.Field>
+
+
+                                        </Form.Root>
+                                    </Accordion.Content>
+                                </Accordion.Item>
+                            )
+                        }
+                    </Accordion.Root>
                 </div>
 
-                <div className='mt-9'>
+
+                <div>
 
                     <p className='text-xs text-zinc-400 mb-1 text-center'>Camera position</p>
 
@@ -353,9 +359,9 @@ const Home = () => {
 
 
 
-            <div className='p-3 col-span-3'>
+            <div className='m-3 col-span-3 border border-green-600 cursor-pointer'>
 
-                <Canvas className='border border-green-600 cursor-pointer'>
+                <Canvas>
                     <Scene />
 
                     <BuildSpace />
@@ -368,7 +374,7 @@ const Home = () => {
             </div>
 
 
-            <div className='p-3 border border-green-600'>
+            <div className='m-3 p-3 border border-green-600'>
 
             </div>
         </div>

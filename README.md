@@ -16,6 +16,9 @@
 - Process slicing jobs in the background instead 
 - Update `canSlice` correctly
 - Hover over model in sidebar should highlight it in the build space
+- Clicking on a model will focus the model behind it
+- Toggle axes and build space view
+- Move model around
 
 ## Notice
 
