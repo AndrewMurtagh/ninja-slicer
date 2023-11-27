@@ -14,14 +14,19 @@ const execute = (command: string) => new Promise((resolve, reject) => {
 export const POST = async (req: Request) => {
 
     let command = process.env.NODE_ENV === 'production' ? './bin/prusaslicer-x84 --help' : './bin/prusaslicer-arm64 --help';
+    console.log('running command');
+    console.log(command);
 
     try {
         const res = await execute(command);
 
-        console.log(res)
+        console.log('model sliced');
+        console.log(res);
         return Response.json({ 'res': 'success' });
 
     } catch (error) {
+        console.log('error slicing');
+        console.log(error)
         return Response.json({ 'res': 'failed' });
 
     }
