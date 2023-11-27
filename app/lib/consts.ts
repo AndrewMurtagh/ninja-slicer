@@ -1,6 +1,6 @@
 import { BuildSpaceDimensions, CameraPose } from './types';
 
-export const POINT_LIGHT_INTENSITY = 1.0;
+export const POINT_LIGHT_INTENSITY = 10000.0;
 export const AMBIENT_LIGHT_INTENSITY = 1.0;
 export const CAMERA_NEAR = 0.1;
 export const CAMERA_FAR = 1000;

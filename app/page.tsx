@@ -34,6 +34,7 @@ const Home = () => {
             <div className='m-3 col-span-3 border border-green-600 cursor-pointer'>
 
                 <Canvas>
+
                     <Scene />
 
                     <BuildSpace />
@@ -49,7 +50,7 @@ const Home = () => {
             <div className='m-3'>
 
                 <Settings />
-              
+
             </div>
         </div>
     )
