@@ -20,9 +20,6 @@
 - Toggle axes and build space view
 - Move model around
 
-## Notice
-
-Not tested on machines.
 
 
 ## Slicer
@@ -32,3 +29,15 @@ We use PrusaSlicer [2.7.0] (licensed under AGPLv3).
 Both of which are tracked using Git LFS, it will need to be enabled in Vercel.
 
 <!-- PrusaSlicer-2.7.0+linux-x64-GTK3-202311231454.tar.bz2 and PrusaSlicer-2.7.0+MacOS-universal-202311231501.dmg -->
+
+
+
+
+## Disclaimer
+
+This has been built as a fun project and has not been extensively tested on real printers. Please use with caution. The authors do not claim responsibility for any damage caused.
+
+
+## License
+
+This work is licensed under AGPL v3.
