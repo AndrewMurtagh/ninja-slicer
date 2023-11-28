@@ -5,13 +5,14 @@ import * as THREE from 'three';
 //@ts-ignore
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader';
 import { useNinjaStore } from '../lib/store';
+import { useSettingsStore } from '../lib/settings-store';
 
 
 export const STLModel = ({ modelFile }: { modelFile: ModelFile; }) => {
 
     const [highlighted, setHighlighted] = useState(false);
     const geom = useLoader(STLLoader, modelFile.url);
-    const buildSpaceDimensions = useNinjaStore(state => state.buildSpaceDimensions);
+    const settings = useSettingsStore(state => state.settings);
     const highlightedModelId = useNinjaStore(state => state.highlightedModelId);
     const setHighlightedModelId = useNinjaStore(state => state.setHighlightedModelId);
 
@@ -32,7 +33,7 @@ export const STLModel = ({ modelFile }: { modelFile: ModelFile; }) => {
     return (
         <>
             <mesh
-                position={[buildSpaceDimensions.width / 2, buildSpaceDimensions.depth / 2, 0]}
+                position={[settings.x_bed_width / 2, settings.x_bed_depth / 2, 0]}
                 onPointerOver={e => setHighlighted(true)}
                 onPointerOut={e => setHighlighted(false)}
                 onClick={() => setHighlightedModelId(modelFile.id)}

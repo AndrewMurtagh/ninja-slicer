@@ -7,11 +7,7 @@ import { useCallback } from 'react';
 import { BiRefresh, BiSolidTrash } from 'react-icons/bi';
 
 
-
-
 export const ModelChooser = () => {
-
-
 
     const highlightedModelId = useNinjaStore(state => state.highlightedModelId);
     const setModelScale = useNinjaStore(state => state.setModelScale);
@@ -19,8 +15,6 @@ export const ModelChooser = () => {
     const addModelFile = useNinjaStore(state => state.addModelFile);
     const removeModelFile = useNinjaStore(state => state.removeModelFile);
     const modelFiles = useNinjaStore(state => state.modelFiles);
-
-
 
     const onDrop = useCallback((acceptedFiles: any) => {
 

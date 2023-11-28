@@ -4,13 +4,6 @@ export type CameraPose = {
     z: number;
 };
 
-export type BuildSpaceDimensions = {
-    width: number;
-    depth: number;
-    height: number;
-};
-
-
 export type ModelFile = {
     id: string;
     name: string;

@@ -1,12 +1,15 @@
 import { MouseEvent } from 'react';
 import { useNinjaStore } from '../lib/store';
 import axios from 'axios';
+import { useSettingsStore } from '../lib/settings-store';
 
 
 export 
 const SliceButton = () => {
+
     const canSlice = useNinjaStore(state => state.canSlice);
     const modelFiles = useNinjaStore(state => state.modelFiles);
+    const settings = useSettingsStore(state => state.settings);
 
     const onSlice = async (e: MouseEvent<HTMLElement>) => {
 
@@ -22,7 +25,6 @@ const SliceButton = () => {
             formData.append(modelFile.id, modelFile.fileData);
         }
 
-
         try {
             const res = await axios({
                 method: 'POST',
@@ -32,7 +34,7 @@ const SliceButton = () => {
                     'Content-Type': 'multipart/form-data',
                 },
                 params: {
-                    settings: 'TODO'
+                    settings: JSON.stringify(settings)
                 }
             });
             console.log(res.status)

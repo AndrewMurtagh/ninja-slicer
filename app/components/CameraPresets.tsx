@@ -1,12 +1,13 @@
 import * as ToggleGroup from '@radix-ui/react-toggle-group';
 import { CameraPreset, ISOMETRIC_CAMERA_POSE } from '../lib/consts';
 import { useNinjaStore } from '../lib/store';
+import { useSettingsStore } from '../lib/settings-store';
 
 
 export const CameraPresets = () => {
 
     const setCameraPose = useNinjaStore(state => state.setCameraPose);
-    const buildSpaceDimensions = useNinjaStore(state => state.buildSpaceDimensions);
+    const settings = useSettingsStore(state => state.settings);
 
     const onCameraPreset = (preset: string) => {
 
@@ -17,33 +18,33 @@ export const CameraPresets = () => {
 
             case CameraPreset.Left:
                 setCameraPose({
-                    x: -buildSpaceDimensions.width / 2,
-                    y: buildSpaceDimensions.depth / 2,
-                    z: buildSpaceDimensions.height / 2
+                    x: -settings.x_bed_width / 2,
+                    y: settings.x_bed_depth / 2,
+                    z: settings.x_bed_height / 2
                 });
                 break;
 
             case CameraPreset.Right:
                 setCameraPose({
-                    x: buildSpaceDimensions.width + buildSpaceDimensions.width / 2,
-                    y: buildSpaceDimensions.depth / 2,
-                    z: buildSpaceDimensions.height / 2
+                    x: settings.x_bed_width + settings.x_bed_width / 2,
+                    y: settings.x_bed_depth / 2,
+                    z: settings.x_bed_height / 2
                 });
                 break;
 
             case CameraPreset.Front:
                 setCameraPose({
-                    x: buildSpaceDimensions.width / 2,
-                    y: -buildSpaceDimensions.depth / 2,
-                    z: buildSpaceDimensions.height / 2
+                    x: settings.x_bed_width / 2,
+                    y: -settings.x_bed_depth / 2,
+                    z: settings.x_bed_height / 2
                 });
                 break;
 
             case CameraPreset.Top:
                 setCameraPose({
-                    x: buildSpaceDimensions.width / 2,
-                    y: buildSpaceDimensions.depth / 2,
-                    z: buildSpaceDimensions.height / 2
+                    x: settings.x_bed_width / 2,
+                    y: settings.x_bed_depth / 2,
+                    z: settings.x_bed_height / 2
                 });
                 break;
         }
