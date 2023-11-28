@@ -32,6 +32,7 @@ The actual slicer used is [PrusaSlicer [2.7.0]](https://github.com/prusa3d/Prusa
 - [ ] Import printers and pre-fill settings
 - [ ] Limit to one model only
 - [ ] Show result of slicing to user
+- [ ] merge settings-store and ninja-store
 </details>
 
 

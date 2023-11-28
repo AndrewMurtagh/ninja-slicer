@@ -8,13 +8,16 @@ import { ISOMETRIC_CAMERA_POSE } from './consts';
 type State = {
     cameraPose: CameraPose;
     canSlice: boolean;
+    isSlicing: boolean;
+    sliceError: string | null;
     modelFiles: ModelFile[];
     highlightedModelId: string | null;
 }
 
 type Actions = {
+    setIsSlicing: (slicing: boolean) => void;
+    setSliceError: (error: string | null) => void;
     setCameraPose: (pose: CameraPose) => void;
-    // buildSpaceDimensions: BuildSpaceDimensions;
     addModelFile: (modelFile: ModelFile) => void;
     removeModelFile: (id: string) => void;
     setModelScale: (id: string, scale: number) => void;
@@ -25,8 +28,16 @@ type Actions = {
 export const useNinjaStore = create<State & Actions>()(immer((set) => ({
     cameraPose: ISOMETRIC_CAMERA_POSE,
     canSlice: false,
+    isSlicing: false,
+    sliceError: null,
     modelFiles: [],
     highlightedModelId: null,
+    setIsSlicing: (slicing: boolean) => set((state) => {
+        state.isSlicing = slicing;
+    }),
+    setSliceError: (error: string | null) => set((state) => {
+        state.sliceError = error;
+    }),
     setCameraPose: (pose: CameraPose) => set((state) => {
         state.cameraPose = pose;
     }),

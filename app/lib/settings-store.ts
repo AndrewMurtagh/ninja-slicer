@@ -28,7 +28,7 @@ type State = {
 
 const INITIAL_SETTINGS = {
     rotate: 0, // degrees
-    scale: 0, // factor
+    scale: 1, // factor
     layer_height: 0.3, // mm
     first_layer_height: 0.35, // mm
     fill_density: 0.2, // percentage as a deciment
